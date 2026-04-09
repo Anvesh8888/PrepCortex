@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PrepCortex AI</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 50px; }
+        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; width: 500px; border: 1px solid rgba(255,255,255,0.2); }
+        h2 { color: #38bdf8; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: none; background: #1e293b; color: white; }
+        button { width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .result { margin-top: 20px; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>PrepCortex AI Planner</h2>
+        <form method="POST">
+            <input type="number" name="days" placeholder="Days until exam" required>
+            <input type="text" name="subjects" placeholder="Subjects (e.g. Math, Physics)" required>
+            <select name="difficulty">
+                <option value="easy">Easy</option>
+                <option value="moderate">Moderate</option>
+                <option value="intense">Intense</option>
+            </select>
+            <input type="number" name="hours" placeholder="Hours available per day" required>
+            <button type="submit">Generate Plan</button>
+        </form>
+
+        {% if planner %}
+        <div class="result">
+            <h3>Your Study Plan:</h3>
+            {{ planner }}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
