@@ -1,37 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrepCortex AI</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 50px; }
-        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; width: 500px; border: 1px solid rgba(255,255,255,0.2); }
-        h2 { color: #38bdf8; }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: none; background: #1e293b; color: white; }
-        button { width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .result { margin-top: 20px; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
+        /* Base page styling */
+        body { 
+            background: #0f172a; 
+            color: white; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; 
+            flex-direction: column; /* Stacks items vertically */
+            align-items: center;    /* Centers items horizontally */
+            padding: 40px 20px; 
+            min-height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        /* --- UPPER BOX: The Controls --- */
+        .controls-card { 
+            background: rgba(30, 41, 59, 0.7); /* Slightly lighter background */
+            backdrop-filter: blur(12px); 
+            padding: 35px 40px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 500px; /* Keeps the form neat and centered */
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px; /* Space between the two boxes */
+        }
+
+        h2 { 
+            color: #38bdf8; /* Accent blue */
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        /* Input formatting */
+        input, select { 
+            width: 100%; 
+            padding: 14px; 
+            margin-bottom: 15px; 
+            border-radius: 10px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            background: rgba(0, 0, 0, 0.2); 
+            color: white; 
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Fixes dropdown text visibility on Windows */
+        option { background: #1e293b; color: white; }
+
+        /* Button formatting */
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #0ea5e9, #38bdf8); 
+            border: none; 
+            border-radius: 10px; 
+            color: white;
+            font-weight: bold; 
+            font-size: 16px;
+            cursor: pointer; 
+            margin-top: 10px; 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px); /* Slight lift effect */
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.4); /* Glow effect */
+        }
+
+        /* --- LOWER BOX: The Response --- */
+        .response-card {
+            background: rgba(15, 23, 42, 0.8); /* Darker to contrast with form */
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 1200px; /* This makes it MUCH wider than the form */
+            border: 1px solid rgba(56, 189, 248, 0.3); /* Subtle blue border */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+            animation: fadeIn 0.5s ease-out; /* Smooth entrance */
+        }
+
+        /* Text formatting inside the response box */
+        .result-content { 
+            white-space: pre-wrap; /* Keeps Markdown spacing */
+            line-height: 1.8; 
+            font-size: 16px;
+            color: #e2e8f0;
+        }
+
+        /* Error message styling */
+        .error-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: -20px;
+            margin-bottom: 30px;
+        }
+
+        /* Simple animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>PrepCortex AI Planner</h2>
+
+    <div class="controls-card">
+        <h2>PrepCortex AI</h2>
         <form method="POST">
-            <input type="number" name="days" placeholder="Days until exam" required>
-            <input type="text" name="subjects" placeholder="Subjects (e.g. Math, Physics)" required>
+            <input type="number" name="days" placeholder="Days until exam (e.g., 30)" required>
+            <input type="text" name="subjects" placeholder="Subjects (e.g., Math, Physics)" required>
             <select name="difficulty">
-                <option value="easy">Easy</option>
-                <option value="moderate">Moderate</option>
-                <option value="intense">Intense</option>
+                <option value="easy">Pacing: Easy</option>
+                <option value="moderate" selected>Pacing: Moderate</option>
+                <option value="intense">Pacing: Intense</option>
             </select>
             <input type="number" name="hours" placeholder="Hours available per day" required>
             <button type="submit">Generate Plan</button>
         </form>
-
-        {% if planner %}
-        <div class="result">
-            <h3>Your Study Plan:</h3>
-            {{ planner }}
-        </div>
-        {% endif %}
     </div>
+
+    {% if error %}
+    <div class="error-card">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {% if planner %}
+    <div class="response-card">
+        <div class="result-content">{{ planner }}</div>
+    </div>
+    {% endif %}
+
 </body>
 </html>
