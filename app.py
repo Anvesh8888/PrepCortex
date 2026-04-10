@@ -9,7 +9,13 @@ from markupsafe import Markup
 # --- APP INITIALIZATION ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-prepcortex-key' # Required for secure WebSockets
-socketio = SocketIO(app)
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*", 
+    async_mode='gevent', 
+    engineio_logger=False, 
+    always_connect=True
+)
 
 # --- AI SETUP ---
 # Initialize client with stable v1 API
