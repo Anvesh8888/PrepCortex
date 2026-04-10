@@ -3,3 +3,6 @@ gunicorn
 google-genai
 python-dotenv
 markdown
+flask-socketio
+gevent
+gevent-websocket
