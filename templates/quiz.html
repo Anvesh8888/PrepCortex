@@ -2,21 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrepCortex Arena</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body { background-color: #1e293b; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .card { background: #0f172a; padding: 40px; border-radius: 20px; width: 90%; max-width: 500px; text-align: center; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
-        h1, h2 { color: #38bdf8; margin-top: 0; }
-        input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
+        h1, h2, h4 { color: #38bdf8; margin-top: 0; }
+        input[type="text"], input[type="number"], input[type="file"] { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
         button { width: 100%; padding: 15px; margin-bottom: 10px; background: linear-gradient(135deg, #0ea5e9, #38bdf8); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-secondary { background: #334155; }
         .hidden { display: none; }
         .player-list { text-align: left; background: rgba(56, 189, 248, 0.05); padding: 15px; border-radius: 10px; margin: 20px 0;}
         .option-btn { background: #1e293b; border: 1px solid #38bdf8; margin-top: 10px; transition: 0.2s; }
-        .option-btn:hover { background: #38bdf8; color: #0f172a; }
+        .option-btn:hover:not(:disabled) { background: #38bdf8; color: #0f172a; }
         .score-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .q-tracker { font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -24,38 +25,44 @@
     <div class="card" id="join-screen">
         <h1>Arena Lobby</h1>
         <input type="text" id="username" placeholder="Pick a username">
-        <button onclick="createRoom()">Create New Room</button>
+        <button onclick="createRoom()">Create New Room (Host)</button>
         <div style="margin: 15px 0; color: #94a3b8;">— OR —</div>
         <input type="text" id="room-input" placeholder="Enter 4-digit code">
         <button class="btn-secondary" onclick="joinRoom()">Join Room</button>
-        <br><br>
-        <a href="/" style="color: #94a3b8; text-decoration: none; font-size: 14px;">← Back to Planner</a>
     </div>
 
     <div class="card hidden" id="lobby-screen">
-        <h2>Room: <span id="display-code" style="color: white;"></span></h2>
+        <h2>Room Code: <span id="display-code" style="color: white;"></span></h2>
         <div class="player-list" id="players-list"></div>
-        <button id="start-btn" class="hidden" onclick="startGame()">Start Quiz</button>
-        <p id="waiting-msg" class="hidden" style="color: #94a3b8;">Waiting for host to start...</p>
+        
+        <div id="host-controls" class="hidden">
+            <h4 style="margin-top: 20px; text-align: left;">AI Quiz Generator</h4>
+            <input type="file" id="pdf-upload" accept=".pdf">
+            <input type="number" id="num-questions" placeholder="How many questions? (e.g. 5)" value="5">
+            <button id="start-btn" onclick="generateAndStart()">Generate AI Quiz & Start</button>
+            <p id="loading-msg" class="hidden" style="color: #38bdf8;">Reading PDF & Generating Quiz... (Takes ~10s)</p>
+        </div>
+
+        <p id="waiting-msg" class="hidden" style="color: #94a3b8;">Waiting for host to upload PDF and start...</p>
     </div>
 
     <div class="card hidden" id="game-screen">
+        <div class="q-tracker" id="q-tracker">Question 1 of 5</div>
         <h3 id="question-text">Question goes here?</h3>
         <div id="options-container"></div>
+        <h4 id="status-msg" style="margin-top: 20px; color: #94a3b8;" class="hidden">Waiting for others to answer...</h4>
+        
         <div class="player-list">
-            <h4 style="margin-top:0; color:#38bdf8;">Leaderboard</h4>
+            <h4 style="margin-top:0; color:#38bdf8;">Live Standings</h4>
             <div id="live-scores"></div>
         </div>
     </div>
 
     <script>
-        // Replace const socket = io(); with this:
-    const socket = io({
-        transports: ['websocket'], 
-        upgrade: false
-    });
+        const socket = io({ transports: ['websocket'], upgrade: false });
         let myRoomCode = "";
 
+        // --- ROOM LOGIC ---
         function createRoom() {
             const user = document.getElementById('username').value;
             if(!user) return alert("Enter username");
@@ -69,20 +76,48 @@
             socket.emit('join_room', { username: user, room_code: code });
         }
 
-        function startGame() {
-            socket.emit('start_game', { room_code: myRoomCode });
+        // --- PDF GENERATION LOGIC ---
+        async function generateAndStart() {
+            const fileInput = document.getElementById('pdf-upload');
+            const numQuestions = document.getElementById('num-questions').value;
+            
+            if(!fileInput.files[0]) return alert("Please upload a PDF first!");
+
+            // Show loading UI
+            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('loading-msg').classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+            formData.append('num_questions', numQuestions);
+
+            try {
+                // Send PDF to Flask HTTP Route
+                const response = await fetch('/generate_quiz', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if(data.error) throw new Error(data.error);
+
+                // If successful, send the generated questions to Socket to start game
+                socket.emit('start_game', { room_code: myRoomCode, questions: data.questions });
+            } catch (err) {
+                alert("Failed to generate quiz: " + err.message);
+                document.getElementById('start-btn').classList.remove('hidden');
+                document.getElementById('loading-msg').classList.add('hidden');
+            }
         }
 
         function submitAnswer(index) {
             socket.emit('submit_answer', { room_code: myRoomCode, answer: index });
-            document.querySelectorAll('.option-btn').forEach(btn => btn.style.opacity = "0.5");
+            // Disable buttons immediately so they can't double-click
+            document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
         }
 
-        // Socket Listeners
+        // --- SOCKET LISTENERS ---
         socket.on('room_created', (data) => {
             myRoomCode = data.room_code;
             document.getElementById('display-code').innerText = myRoomCode;
-            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('host-controls').classList.remove('hidden');
             updatePlayers(data.players);
             switchScreen('lobby-screen');
         });
@@ -98,7 +133,12 @@
 
         socket.on('new_question', (data) => {
             switchScreen('game-screen');
+            document.getElementById('status-msg').classList.add('hidden');
+            
+            // Update Question NumberTracker
+            document.getElementById('q-tracker').innerText = `Question ${data.current} of ${data.total}`;
             document.getElementById('question-text').innerText = data.q;
+            
             const container = document.getElementById('options-container');
             container.innerHTML = "";
             data.options.forEach((opt, idx) => {
@@ -110,27 +150,45 @@
             });
         });
 
-        socket.on('update_scores', (data) => {
+        // Triggered only for the person who just answered
+        socket.on('waiting_for_others', () => {
+            document.getElementById('status-msg').classList.remove('hidden');
+        });
+
+        // Triggered when EVERYONE has answered
+        socket.on('round_results', (data) => {
+            document.getElementById('status-msg').innerText = "Round over! Next question in 3 seconds...";
             const scoreDiv = document.getElementById('live-scores');
             scoreDiv.innerHTML = data.players
                 .sort((a,b) => b.score - a.score)
-                .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score}</span></div>`).join('');
+                .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score} pts</span></div>`).join('');
         });
 
         socket.on('game_over', (data) => {
+            document.getElementById('q-tracker').innerText = "QUIZ COMPLETE";
             document.getElementById('question-text').innerText = "🏆 Final Rankings";
             document.getElementById('options-container').innerHTML = `<button onclick="location.reload()">Play Again</button>`;
+            document.getElementById('status-msg').classList.add('hidden');
         });
 
         socket.on('error', (data) => alert(data.message));
 
+        // --- HELPERS ---
         function switchScreen(id) {
             document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
         function updatePlayers(players) {
-            document.getElementById('players-list').innerHTML = players.map(p => `<p>• ${p.username}</p>`).join('');
+            document.getElementById('players-list').innerHTML = players.map(p => `<p>🟢 ${p.username}</p>`).join('');
+            
+            // Also update the live scoreboard if a player joins late
+            const scoreDiv = document.getElementById('live-scores');
+            if(scoreDiv) {
+                scoreDiv.innerHTML = players
+                    .sort((a,b) => b.score - a.score)
+                    .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score} pts</span></div>`).join('');
+            }
         }
     </script>
 </body>
