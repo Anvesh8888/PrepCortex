@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrepCortex Arena</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { background-color: #1e293b; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: #0f172a; padding: 40px; border-radius: 20px; width: 90%; max-width: 500px; text-align: center; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+        h1, h2 { color: #38bdf8; margin-top: 0; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; margin-bottom: 10px; background: linear-gradient(135deg, #0ea5e9, #38bdf8); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-secondary { background: #334155; }
+        .hidden { display: none; }
+        .player-list { text-align: left; background: rgba(56, 189, 248, 0.05); padding: 15px; border-radius: 10px; margin: 20px 0;}
+        .option-btn { background: #1e293b; border: 1px solid #38bdf8; margin-top: 10px; transition: 0.2s; }
+        .option-btn:hover { background: #38bdf8; color: #0f172a; }
+        .score-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="card" id="join-screen">
+        <h1>Arena Lobby</h1>
+        <input type="text" id="username" placeholder="Pick a username">
+        <button onclick="createRoom()">Create New Room</button>
+        <div style="margin: 15px 0; color: #94a3b8;">— OR —</div>
+        <input type="text" id="room-input" placeholder="Enter 4-digit code">
+        <button class="btn-secondary" onclick="joinRoom()">Join Room</button>
+        <br><br>
+        <a href="/" style="color: #94a3b8; text-decoration: none; font-size: 14px;">← Back to Planner</a>
+    </div>
+
+    <div class="card hidden" id="lobby-screen">
+        <h2>Room: <span id="display-code" style="color: white;"></span></h2>
+        <div class="player-list" id="players-list"></div>
+        <button id="start-btn" class="hidden" onclick="startGame()">Start Quiz</button>
+        <p id="waiting-msg" class="hidden" style="color: #94a3b8;">Waiting for host to start...</p>
+    </div>
+
+    <div class="card hidden" id="game-screen">
+        <h3 id="question-text">Question goes here?</h3>
+        <div id="options-container"></div>
+        <div class="player-list">
+            <h4 style="margin-top:0; color:#38bdf8;">Leaderboard</h4>
+            <div id="live-scores"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myRoomCode = "";
+
+        function createRoom() {
+            const user = document.getElementById('username').value;
+            if(!user) return alert("Enter username");
+            socket.emit('create_room', { username: user });
+        }
+
+        function joinRoom() {
+            const user = document.getElementById('username').value;
+            const code = document.getElementById('room-input').value;
+            if(!user || !code) return alert("Enter username and code");
+            socket.emit('join_room', { username: user, room_code: code });
+        }
+
+        function startGame() {
+            socket.emit('start_game', { room_code: myRoomCode });
+        }
+
+        function submitAnswer(index) {
+            socket.emit('submit_answer', { room_code: myRoomCode, answer: index });
+            document.querySelectorAll('.option-btn').forEach(btn => btn.style.opacity = "0.5");
+        }
+
+        // Socket Listeners
+        socket.on('room_created', (data) => {
+            myRoomCode = data.room_code;
+            document.getElementById('display-code').innerText = myRoomCode;
+            document.getElementById('start-btn').classList.remove('hidden');
+            updatePlayers(data.players);
+            switchScreen('lobby-screen');
+        });
+
+        socket.on('join_success', (data) => {
+            myRoomCode = data.room_code;
+            document.getElementById('display-code').innerText = myRoomCode;
+            document.getElementById('waiting-msg').classList.remove('hidden');
+            switchScreen('lobby-screen');
+        });
+
+        socket.on('player_joined', (data) => updatePlayers(data.players));
+
+        socket.on('new_question', (data) => {
+            switchScreen('game-screen');
+            document.getElementById('question-text').innerText = data.q;
+            const container = document.getElementById('options-container');
+            container.innerHTML = "";
+            data.options.forEach((opt, idx) => {
+                const b = document.createElement('button');
+                b.className = 'option-btn';
+                b.innerText = opt;
+                b.onclick = () => submitAnswer(idx);
+                container.appendChild(b);
+            });
+        });
+
+        socket.on('update_scores', (data) => {
+            const scoreDiv = document.getElementById('live-scores');
+            scoreDiv.innerHTML = data.players
+                .sort((a,b) => b.score - a.score)
+                .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score}</span></div>`).join('');
+        });
+
+        socket.on('game_over', (data) => {
+            document.getElementById('question-text').innerText = "🏆 Final Rankings";
+            document.getElementById('options-container').innerHTML = `<button onclick="location.reload()">Play Again</button>`;
+        });
+
+        socket.on('error', (data) => alert(data.message));
+
+        function switchScreen(id) {
+            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function updatePlayers(players) {
+            document.getElementById('players-list').innerHTML = players.map(p => `<p>• ${p.username}</p>`).join('');
+        }
+    </script>
+</body>
+</html>
