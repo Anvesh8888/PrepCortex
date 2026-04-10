@@ -29,9 +29,50 @@ games = {}
 # --- HTTP ROUTES ---
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    # ... (Keep your existing study planner logic here exactly as it was) ...
-    return render_template('index.html', planner="", error="")
+    planner_html = ""
+    error_message = ""
+    
+    if request.method == 'POST':
+        days = request.form.get('days')
+        subjects = request.form.get('subjects')
+        difficulty = request.form.get('difficulty')
+        hours = request.form.get('hours')
 
+        # Clean prompt for Markdown tables
+        prompt = (
+            f"Generate a professional study plan for {days} days. "
+            f"Subjects: {subjects}. Difficulty: {difficulty}. Time: {hours}hrs/day. "
+            f"Instructions: Use a clean Markdown table for the daily schedule. "
+            f"Use headers for sections. Do not include introductory or concluding conversational text. "
+            f"Focus only on the schedule and actionable goals."
+        )
+        
+        success = False
+        
+        # The Fallback Loop
+        for model_name in FALLBACK_MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_name, 
+                    contents=prompt
+                )
+                
+                # Convert AI Markdown to clean HTML
+                raw_markdown = response.text
+                planner_html = Markup(markdown.markdown(raw_markdown, extensions=['tables']))
+                success = True
+                print(f"Success using model: {model_name}")
+                break 
+                
+            except Exception as e:
+                print(f"Model {model_name} failed or busy. Trying next...")
+                continue
+        
+        if not success:
+            error_message = "All AI servers are currently full! Please wait 30 seconds and try again."
+
+    return render_template('index.html', planner=planner_html, error=error_message)
+    
 @app.route('/quiz')
 def quiz():
     return render_template('quiz.html')
