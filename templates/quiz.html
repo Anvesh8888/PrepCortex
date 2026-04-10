@@ -36,14 +36,14 @@
         <div class="player-list" id="players-list"></div>
         
         <div id="host-controls" class="hidden">
-            <h4 style="margin-top: 20px; text-align: left;">AI Quiz Generator</h4>
+            <h4 style="margin-top: 20px; text-align: left;">Quiz Generator</h4>
             <input type="file" id="pdf-upload" accept=".pdf">
             <input type="number" id="num-questions" placeholder="How many questions? (e.g. 5)" value="5">
             <button id="start-btn" onclick="generateAndStart()">Generate AI Quiz & Start</button>
             <p id="loading-msg" class="hidden" style="color: #38bdf8;">Reading PDF & Generating Quiz... (Takes ~10s)</p>
         </div>
 
-        <p id="waiting-msg" class="hidden" style="color: #94a3b8;">Waiting for host to upload PDF and start...</p>
+        <p id="waiting-msg" class="hidden" style="color: #94a3b8;">Waiting for host to start...</p>
     </div>
 
     <div class="card hidden" id="game-screen">
@@ -53,7 +53,7 @@
         <h4 id="status-msg" style="margin-top: 20px; color: #94a3b8;" class="hidden">Waiting for others to answer...</h4>
         
         <div class="player-list">
-            <h4 style="margin-top:0; color:#38bdf8;">Live Standings</h4>
+            <h4 style="margin-top:0; color:#38bdf8;">Current Scores</h4>
             <div id="live-scores"></div>
         </div>
     </div>
