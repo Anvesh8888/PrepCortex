@@ -6,3 +6,4 @@ markdown
 flask-socketio
 gevent
 gevent-websocket
+PyPDF2
