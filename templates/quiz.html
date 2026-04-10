@@ -29,6 +29,8 @@
         <div style="margin: 15px 0; color: #94a3b8;">— OR —</div>
         <input type="text" id="room-input" placeholder="Enter 4-digit code">
         <button class="btn-secondary" onclick="joinRoom()">Join Room</button>
+        <br><br>
+        <a href="/" style="color: #94a3b8; text-decoration: none; font-size: 14px;">← Back to Planner</a>
     </div>
 
     <div class="card hidden" id="lobby-screen">
@@ -164,11 +166,43 @@
                 .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score} pts</span></div>`).join('');
         });
 
+        // --- THE UPGRADED GAME OVER SCREEN ---
         socket.on('game_over', (data) => {
             document.getElementById('q-tracker').innerText = "QUIZ COMPLETE";
             document.getElementById('question-text').innerText = "🏆 Final Rankings";
-            document.getElementById('options-container').innerHTML = `<button onclick="location.reload()">Play Again</button>`;
             document.getElementById('status-msg').classList.add('hidden');
+            
+            // Sort players by score
+            const sortedPlayers = data.players.sort((a,b) => b.score - a.score);
+            
+            // Generate the styled leaderboard
+            let rankingsHTML = "";
+            sortedPlayers.forEach((p, index) => {
+                let position = index + 1;
+                let medal = "";
+                let highlightColor = "white";
+                let fontWeight = "normal";
+                let fontSize = "1em";
+
+                if (position === 1) { medal = "🥇 "; highlightColor = "#fbbf24"; fontWeight = "bold"; fontSize = "1.2em"; }
+                else if (position === 2) { medal = "🥈 "; highlightColor = "#e2e8f0"; fontWeight = "bold"; fontSize = "1.1em"; }
+                else if (position === 3) { medal = "🥉 "; highlightColor = "#b45309"; fontWeight = "bold"; fontSize = "1.05em"; }
+
+                rankingsHTML += `
+                <div class="score-row" style="padding: 10px 0; font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${highlightColor};">
+                    <span>${medal}${getOrdinal(position)} - ${p.username}</span>
+                    <span>${p.score} pts</span>
+                </div>`;
+            });
+
+            // Update the scoreboard with the final rankings
+            document.getElementById('live-scores').innerHTML = rankingsHTML;
+            
+            // Replace the question buttons with Play Again buttons
+            document.getElementById('options-container').innerHTML = `
+                <button onclick="location.reload()" style="margin-top: 15px;">Play Again</button>
+                <button class="btn-secondary" onclick="window.location.href='/'">Back to Planner</button>
+            `;
         });
 
         socket.on('error', (data) => alert(data.message));
@@ -189,6 +223,13 @@
                     .sort((a,b) => b.score - a.score)
                     .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score} pts</span></div>`).join('');
             }
+        }
+
+        // Helper to turn 1 into "1st", 2 into "2nd", etc.
+        function getOrdinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
         }
     </script>
 </body>
