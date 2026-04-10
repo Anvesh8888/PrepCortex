@@ -5,40 +5,91 @@
     <title>PrepCortex Arena</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { 
+    body { 
     /* The GitHub background link */
     background-image: url('https://raw.githubusercontent.com/Anvesh8888/PrepCortex/main/purple_pattern_bg.jpg');
-    
-    /* Background behavior */
-    background-size: cover;       /* Fills the screen */
-    background-position: center;  /* Keeps it centered */
-    background-attachment: fixed; /* Keeps it "far back" while scrolling */
-    background-repeat: no-repeat; /* No tiling */
-    background-color: #1e293b;    /* Fallback color while loading */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-color: #1e293b; 
 
-    /* Layout settings (keep these the same) */
     color: white; 
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    
+    /* THE CENTERING MAGIC */
     display: flex; 
     flex-direction: column; 
-    align-items: center; 
+    align-items: center;      /* Horizontal center */
+    justify-content: center;   /* Vertical center */
     margin: 0;
-    min-height: 100vh;
+    height: 100vh;            /* Forces body to be exactly the height of the screen */
+    width: 100vw;             /* Forces body to be the full width */
+    overflow: hidden;         /* Prevents accidental scrollbars during the quiz */
     box-sizing: border-box;
 }
-        .card { background: #0f172a; padding: 40px; border-radius: 20px; width: 90%; max-width: 500px; text-align: center; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
-        h1, h2, h4 { color: #38bdf8; margin-top: 0; }
-        input[type="text"], input[type="number"], input[type="file"] { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; margin-bottom: 10px; background: linear-gradient(135deg, #0ea5e9, #38bdf8); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background: #334155; }
-        .hidden { display: none; }
-        .player-list { text-align: left; background: rgba(56, 189, 248, 0.05); padding: 15px; border-radius: 10px; margin: 20px 0;}
-        .option-btn { background: #1e293b; border: 1px solid #38bdf8; margin-top: 10px; transition: 0.2s; }
-        .option-btn:hover:not(:disabled) { background: #38bdf8; color: #0f172a; }
-        .score-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .q-tracker { font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
-    </style>
+
+.card { 
+    background: #0f172a; 
+    padding: 40px; 
+    border-radius: 20px; 
+    width: 90%; 
+    max-width: 500px; 
+    text-align: center; 
+    border: 1px solid rgba(56, 189, 248, 0.2); 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5); 
+    
+    /* Ensures the card doesn't jump if content changes */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+    h1, h2, h4 { color: #38bdf8; margin-top: 0; }
+    
+    input[type="text"], input[type="number"], input[type="file"] { 
+        width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; 
+        border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; 
+    }
+
+    button { 
+        width: 100%; padding: 15px; margin-bottom: 10px; 
+        background: linear-gradient(135deg, #0ea5e9, #38bdf8); 
+        border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover:not(:disabled) { 
+        transform: translateY(-2px); 
+        box-shadow: 0 5px 15px rgba(14, 165, 233, 0.4);
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary { background: #334155; }
+    .hidden { display: none; }
+
+    .player-list { 
+        text-align: left; background: rgba(56, 189, 248, 0.05); 
+        padding: 15px; border-radius: 10px; margin: 20px 0;
+    }
+
+    .option-btn { 
+        background: #1e293b; border: 1px solid #38bdf8; margin-top: 10px; transition: 0.2s; 
+    }
+
+    .option-btn:hover:not(:disabled) { background: #38bdf8; color: #0f172a; }
+
+    .score-row { 
+        display: flex; justify-content: space-between; padding: 10px 0; 
+        border-bottom: 1px solid rgba(255,255,255,0.1); 
+    }
+
+    .q-tracker { 
+        font-size: 14px; color: #94a3b8; text-transform: uppercase; 
+        letter-spacing: 2px; margin-bottom: 10px; 
+    }
+</style>
 </head>
 <body>
 
