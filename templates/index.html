@@ -97,8 +97,14 @@
 
     <a href="/quiz" class="arena-link">🎮 Enter Multiplayer Arena</a>
 
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #f87171; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; width: 100%; max-width: 500px; box-sizing: border-box;">
+        ⚠️ {{ error }}
+    </div>
+    {% endif %}
+
     <div class="controls-card">
-        <form method="POST">
+        <form method="POST" id="planner-form" onsubmit="showLoading()">
             <input type="number" name="days" placeholder="Days until exam" required>
             <input type="text" name="subjects" placeholder="Subjects (e.g. Biology, Calc)" required>
             <select name="difficulty">
@@ -107,9 +113,21 @@
                 <option value="intense">Intense Pacing</option>
             </select>
             <input type="number" name="hours" placeholder="Hours per day" required>
-            <button type="submit">Generate Plan</button>
+            <button type="submit" id="submit-btn">Generate Plan</button>
         </form>
+
+        <p id="loading-msg" class="hidden" style="color: #38bdf8; text-align: center; margin-top: 15px; font-weight: bold;">
+            🧠 AI is crafting your schedule... (Please wait ~10 seconds)
+        </p>
     </div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('submit-btn').style.display = 'none';
+            document.getElementById('loading-msg').style.display = 'block';
+            document.getElementById('loading-msg').classList.remove('hidden');
+        }
+    </script>
 
     {% if planner %}
     <div class="response-card">
