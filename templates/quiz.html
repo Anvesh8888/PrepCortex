@@ -139,6 +139,11 @@
     <script>
         const socket = io({ transports: ['websocket'], upgrade: false });
         let myRoomCode = "";
+        // --- ACHIEVEMENT TRACKERS ---
+        let currentStreak = 0;
+        let maxStreak = 0;
+        let myLastScore = 0;
+        let totalQuizQuestions = 0;
 
         // --- ROOM LOGIC ---
         function createRoom() {
@@ -212,11 +217,16 @@
         socket.on('new_question', (data) => {
             switchScreen('game-screen');
             document.getElementById('status-msg').classList.add('hidden');
-            
-            // Ensure live scores are visible if playing a new round
             document.getElementById('live-scores-container').classList.remove('hidden');
             
-            // Update Question NumberTracker
+            // Store total questions for achievement check later
+            totalQuizQuestions = data.total; 
+            
+            // Reset streak logic if it's the very first question
+            if (data.current === 1) {
+                currentStreak = 0; maxStreak = 0; myLastScore = 0;
+            }
+            
             document.getElementById('q-tracker').innerText = `Question ${data.current} of ${data.total}`;
             document.getElementById('question-text').innerText = data.q;
             
@@ -240,6 +250,20 @@
         socket.on('round_results', (data) => {
             document.getElementById('status-msg').innerText = "Round over! Next question in 3 seconds...";
             const scoreDiv = document.getElementById('live-scores');
+            
+            // Streak Tracking Logic
+            const myUsername = document.getElementById('username').value;
+            const myData = data.players.find(p => p.username === myUsername);
+            if (myData) {
+                if (myData.score > myLastScore) {
+                    currentStreak++; // Score went up, streak continues
+                    if (currentStreak > maxStreak) maxStreak = currentStreak;
+                } else {
+                    currentStreak = 0; // Score didn't go up, streak broken
+                }
+                myLastScore = myData.score;
+            }
+
             scoreDiv.innerHTML = data.players
                 .sort((a,b) => b.score - a.score)
                 .map(p => `<div class="score-row"><span>${p.username}</span><span>${p.score} pts</span></div>`).join('');
@@ -258,12 +282,26 @@
             const myUsername = document.getElementById('username').value;
             const myData = data.players.find(p => p.username === myUsername);
             
+            // Sort players to figure out rank
+            const sortedPlayers = data.players.sort((a,b) => b.score - a.score);
+            const myRank = sortedPlayers.findIndex(p => p.username === myUsername) + 1;
+            const totalPlayers = sortedPlayers.length;
+            
             if (myData && myData.score > 0) {
                 const earnedXP = myData.score * 5;
                 addXP(earnedXP, 'Quiz Performance');
             }
             
             logActivity('quiz');
+            
+            // Fire the Arena achievement checks!
+            checkAchievements('quiz_finished', {
+                score: myData ? myData.score : 0,
+                totalQs: totalQuizQuestions,
+                maxStreak: maxStreak,
+                totalPlayers: totalPlayers,
+                rank: myRank
+            });
             // ----------------------------------
 
             // Generate Final Rankings
