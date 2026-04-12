@@ -270,6 +270,7 @@
         });
 
         // --- THE UPGRADED GAME OVER SCREEN ---
+        // --- THE UPGRADED GAME OVER SCREEN ---
         socket.on('game_over', (data) => {
             document.getElementById('q-tracker').innerText = "QUIZ COMPLETE";
             document.getElementById('question-text').innerText = "🏆 Final Rankings";
@@ -304,8 +305,7 @@
             });
             // ----------------------------------
 
-            // Generate Final Rankings
-            const sortedPlayers = data.players.sort((a,b) => b.score - a.score);
+            // Generate Final Rankings (Removed the duplicate 'const sortedPlayers' here!)
             let resultHTML = '<div class="player-list">';
             sortedPlayers.forEach((p, index) => {
                 let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '👤';
