@@ -92,10 +92,11 @@
 </style>
 </head>
 <body>
-<div style="position: absolute; top: 20px; right: 30px; text-align: right; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(5px); z-index: 100;">
+    <div style="position: absolute; top: 20px; right: 30px; text-align: right; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(5px); z-index: 100;">
         <div id="user-title" style="color: #38bdf8; font-weight: 800; font-size: 18px; letter-spacing: 1px;">Loading...</div>
         <div id="user-level" style="color: #94a3b8; font-size: 13px; font-weight: bold; margin-top: 3px;"></div>
     </div>
+
     <div class="card" id="join-screen">
         <h1>Arena Lobby</h1>
         <input type="text" id="username" placeholder="Pick a username">
@@ -128,11 +129,12 @@
         <div id="options-container"></div>
         <h4 id="status-msg" style="margin-top: 20px; color: #94a3b8;" class="hidden">Waiting for others to answer...</h4>
         
-        <div class="player-list">
+        <div class="player-list" id="live-scores-container">
             <h4 style="margin-top:0; color:#38bdf8;">Current Scores</h4>
             <div id="live-scores"></div>
         </div>
     </div>
+
     <script src="{{ url_for('static', filename='cortex.js') }}"></script>
     <script>
         const socket = io({ transports: ['websocket'], upgrade: false });
@@ -211,6 +213,9 @@
             switchScreen('game-screen');
             document.getElementById('status-msg').classList.add('hidden');
             
+            // Ensure live scores are visible if playing a new round
+            document.getElementById('live-scores-container').classList.remove('hidden');
+            
             // Update Question NumberTracker
             document.getElementById('q-tracker').innerText = `Question ${data.current} of ${data.total}`;
             document.getElementById('question-text').innerText = data.q;
@@ -246,24 +251,22 @@
             document.getElementById('question-text').innerText = "🏆 Final Rankings";
             document.getElementById('status-msg').classList.add('hidden');
             
-            // --- CORTEX GAMIFICATION LOGIC ---
-            // 1. Get the username the player typed into the join box
-            const myUsername = document.getElementById('username').value;
+            // HIDE THE LIVE SCORES PANEL
+            document.getElementById('live-scores-container').classList.add('hidden');
             
-            // 2. Find their specific data in the final results
+            // --- CORTEX GAMIFICATION LOGIC ---
+            const myUsername = document.getElementById('username').value;
             const myData = data.players.find(p => p.username === myUsername);
             
-            // 3. Award XP based on their score (5 XP per correct answer)
             if (myData && myData.score > 0) {
                 const earnedXP = myData.score * 5;
                 addXP(earnedXP, 'Quiz Performance');
             }
             
-            // 4. Log that they completed a quiz for the Daily Task
             logActivity('quiz');
             // ----------------------------------
 
-            // Continue with normal game over display...
+            // Generate Final Rankings
             const sortedPlayers = data.players.sort((a,b) => b.score - a.score);
             let resultHTML = '<div class="player-list">';
             sortedPlayers.forEach((p, index) => {
@@ -271,10 +274,16 @@
                 resultHTML += `<div class="score-row"><span>${medal} ${p.username}</span> <span>${p.score} pts</span></div>`;
             });
             resultHTML += '</div>';
+            
+            // ADD LINKS TO PLANNER & LOBBY
+            resultHTML += `
+                <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="window.location.reload()">Play Again (Arena Lobby)</button>
+                    <button class="btn-secondary" onclick="window.location.href='/'">Return to Planner</button>
+                </div>
+            `;
+            
             document.getElementById('options-container').innerHTML = resultHTML;
-            document.getElementById('ready-btn').classList.remove('hidden');
-            document.getElementById('ready-btn').innerText = "Play Again";
-            document.getElementById('ready-btn').disabled = false;
         });
 
         socket.on('error', (data) => alert(data.message));
