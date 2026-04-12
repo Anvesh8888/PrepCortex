@@ -1,10 +1,5 @@
-// --- CORTEX CORE: XP & LEVELING SYSTEM ---
+// --- CORTEX CORE: XP, LEVELING & ACHIEVEMENT SYSTEM ---
 
-/**
- * Calculates current level based on total XP.
- * Formula: Lvl 1=10XP, Lvl 2=15XP, Lvl 3=20XP...
- * The "required" amount increases by 5 each level.
- */
 function getLevelInfo(totalXp) {
     let level = 0;
     let requiredForNext = 10; 
@@ -15,16 +10,9 @@ function getLevelInfo(totalXp) {
         level++;
         requiredForNext += 5;
     }
-    return { 
-        level: level, 
-        currentLevelXp: xpRemaining, 
-        nextLevelReq: requiredForNext 
-    };
+    return { level, currentLevelXp: xpRemaining, nextLevelReq: requiredForNext };
 }
 
-/**
- * Returns the Rank Title based on Level
- */
 function getTitle(level) {
     if (level >= 50) return "Cortex Commander 👑";
     if (level >= 30) return "Neural Navigator ⚡";
@@ -33,38 +21,30 @@ function getTitle(level) {
     return "Awakened Spark 🌱";
 }
 
-/**
- * Adds XP and handles Level-Up notifications
- */
 function addXP(amount, reason) {
     let currentXp = parseInt(localStorage.getItem('cortex_xp')) || 0;
     let oldLevel = getLevelInfo(currentXp).level;
     
     let newXp = currentXp + amount;
     localStorage.setItem('cortex_xp', newXp);
-    
     let newLevel = getLevelInfo(newXp).level;
     
     showToast(`+${amount} XP: ${reason}`);
     
     if (newLevel > oldLevel) {
-        // Delay level up toast slightly so XP toast shows first
         setTimeout(() => {
             showToast(`🚀 LEVEL UP! You are now a ${getTitle(newLevel)}`);
-        }, 1000);
+            checkAchievements('level_up', { level: newLevel });
+        }, 800);
     }
     
     updateUI();
 }
 
-/**
- * Tracks daily tasks (Plan + Quiz) with a 20-hour cooldown
- */
 function logActivity(type) {
     const now = Date.now();
     const twentyHours = 20 * 60 * 60 * 1000;
 
-    // Record the specific activity time
     if (type === 'plan') localStorage.setItem('last_plan_time', now);
     if (type === 'quiz') localStorage.setItem('last_quiz_time', now);
 
@@ -72,20 +52,66 @@ function logActivity(type) {
     const lastQuiz = parseInt(localStorage.getItem('last_quiz_time')) || 0;
     const lastBonus = parseInt(localStorage.getItem('last_daily_bonus_time')) || 0;
 
-    // Condition: Both tasks done AND 20 hours passed since the last +50 XP bonus
     if (lastPlan > 0 && lastQuiz > 0 && (now - lastBonus > twentyHours)) {
-        // Check if both actions happened recently (within the same "window")
-        // We ensure both were done after the last reset
         if (lastPlan > lastBonus && lastQuiz > lastBonus) {
             localStorage.setItem('last_daily_bonus_time', now);
             addXP(50, "Daily Task Complete!");
+            
+            // Track total daily tasks completed
+            let dailyCount = (parseInt(localStorage.getItem('cortex_total_dailies')) || 0) + 1;
+            localStorage.setItem('cortex_total_dailies', dailyCount);
+            checkAchievements('daily_task', { count: dailyCount });
         }
     }
 }
 
-/**
- * Updates the Header UI (Title and Level)
- */
+// --- ACHIEVEMENT ENGINE ---
+function checkAchievements(event, data = {}) {
+    let unlocked = JSON.parse(localStorage.getItem('cortex_achievements')) || [];
+    
+    function unlock(id, title) {
+        if (!unlocked.includes(id)) {
+            unlocked.push(id);
+            localStorage.setItem('cortex_achievements', JSON.stringify(unlocked));
+            setTimeout(() => showToast(`🏆 ACHIEVEMENT: ${title}`, true), 500);
+        }
+    }
+
+    if (event === 'plan_generated') {
+        // Track Total Plans
+        let totalPlans = (parseInt(localStorage.getItem('cortex_total_plans')) || 0) + 1;
+        localStorage.setItem('cortex_total_plans', totalPlans);
+        
+        // Track Daily Plans
+        let today = new Date().toDateString();
+        let dailyPlans = JSON.parse(localStorage.getItem('cortex_daily_plans')) || { date: today, count: 0 };
+        if (dailyPlans.date !== today) dailyPlans = { date: today, count: 0 }; // Reset if new day
+        dailyPlans.count++;
+        localStorage.setItem('cortex_daily_plans', JSON.stringify(dailyPlans));
+
+        // Evaluate Planner Achievements
+        if (totalPlans >= 1) unlock('first_spark', 'The First Spark');
+        if (totalPlans >= 10) unlock('frontal_architect', 'Frontal Lobe Architect');
+        if (dailyPlans.count >= 3) unlock('info_overload', 'Information Overload');
+    }
+
+    if (event === 'quiz_finished') {
+        if (data.maxStreak >= 3) unlock('action_potential', 'Action Potential');
+        if (data.totalQs >= 5 && data.score === data.totalQs) unlock('absolute_recall', 'Absolute Recall');
+        if (data.totalPlayers >= 4) unlock('hive_mind', 'Hive Mind');
+        if (data.rank === 1 && data.totalPlayers > 1) unlock('winner', 'Winner!');
+    }
+
+    if (event === 'level_up') {
+        if (data.level >= 10) unlock('cortical_awakening', 'Cortical Awakening');
+        if (data.level >= 50) unlock('limitless', 'Limitless');
+    }
+
+    if (event === 'daily_task') {
+        if (data.count >= 5) unlock('synaptic_chain', 'Synaptic Chain');
+    }
+}
+
 function updateUI() {
     const totalXp = parseInt(localStorage.getItem('cortex_xp')) || 0;
     const info = getLevelInfo(totalXp);
@@ -99,17 +125,25 @@ function updateUI() {
     }
 }
 
-/**
- * Simple animated toast notification
- */
-function showToast(message) {
+let activeToasts = 0;
+function showToast(message, isAchievement = false) {
     const toast = document.createElement('div');
     toast.innerText = message;
+    
+    // Stack toasts upwards if multiple happen at once
+    const bottomOffset = 30 + (activeToasts * 70);
+    activeToasts++;
+    
+    // Gold styling for achievements, standard blue for XP
+    const bg = isAchievement ? 'linear-gradient(135deg, #fbbf24, #d97706)' : '#0f172a';
+    const textCol = isAchievement ? '#0f172a' : '#38bdf8';
+    const border = isAchievement ? '#f59e0b' : '#38bdf8';
+
     toast.style.cssText = `
-        position: fixed; bottom: 30px; right: -350px; 
-        background: #0f172a; color: #38bdf8; 
+        position: fixed; bottom: ${bottomOffset}px; right: -350px; 
+        background: ${bg}; color: ${textCol}; 
         padding: 16px 24px; border-radius: 12px; 
-        border: 1px solid #38bdf8; font-weight: bold;
+        border: 1px solid ${border}; font-weight: bold;
         box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         z-index: 9999;
@@ -117,15 +151,15 @@ function showToast(message) {
     
     document.body.appendChild(toast);
     
-    // Animate In
     setTimeout(() => toast.style.right = '30px', 100);
     
-    // Animate Out and Remove
     setTimeout(() => {
         toast.style.right = '-350px';
-        setTimeout(() => toast.remove(), 600);
-    }, 4000);
+        setTimeout(() => {
+            toast.remove();
+            activeToasts--;
+        }, 600);
+    }, isAchievement ? 5000 : 3500); // Achievements stay on screen a bit longer
 }
 
-// Ensure UI stays in sync on load
 window.addEventListener('DOMContentLoaded', updateUI);
