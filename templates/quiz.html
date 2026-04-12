@@ -92,7 +92,10 @@
 </style>
 </head>
 <body>
-
+<div style="position: absolute; top: 20px; right: 30px; text-align: right; background: rgba(15, 23, 42, 0.8); padding: 10px 20px; border-radius: 15px; border: 1px solid rgba(56, 189, 248, 0.3); backdrop-filter: blur(5px); z-index: 100;">
+        <div id="user-title" style="color: #38bdf8; font-weight: 800; font-size: 18px; letter-spacing: 1px;">Loading...</div>
+        <div id="user-level" style="color: #94a3b8; font-size: 13px; font-weight: bold; margin-top: 3px;"></div>
+    </div>
     <div class="card" id="join-screen">
         <h1>Arena Lobby</h1>
         <input type="text" id="username" placeholder="Pick a username">
@@ -130,7 +133,7 @@
             <div id="live-scores"></div>
         </div>
     </div>
-
+    <script src="{{ url_for('static', filename='cortex.js') }}"></script>
     <script>
         const socket = io({ transports: ['websocket'], upgrade: false });
         let myRoomCode = "";
@@ -243,37 +246,35 @@
             document.getElementById('question-text').innerText = "🏆 Final Rankings";
             document.getElementById('status-msg').classList.add('hidden');
             
-            // Sort players by score
+            // --- CORTEX GAMIFICATION LOGIC ---
+            // 1. Get the username the player typed into the join box
+            const myUsername = document.getElementById('username').value;
+            
+            // 2. Find their specific data in the final results
+            const myData = data.players.find(p => p.username === myUsername);
+            
+            // 3. Award XP based on their score (5 XP per correct answer)
+            if (myData && myData.score > 0) {
+                const earnedXP = myData.score * 5;
+                addXP(earnedXP, 'Quiz Performance');
+            }
+            
+            // 4. Log that they completed a quiz for the Daily Task
+            logActivity('quiz');
+            // ----------------------------------
+
+            // Continue with normal game over display...
             const sortedPlayers = data.players.sort((a,b) => b.score - a.score);
-            
-            // Generate the styled leaderboard
-            let rankingsHTML = "";
+            let resultHTML = '<div class="player-list">';
             sortedPlayers.forEach((p, index) => {
-                let position = index + 1;
-                let medal = "";
-                let highlightColor = "white";
-                let fontWeight = "normal";
-                let fontSize = "1em";
-
-                if (position === 1) { medal = "🥇 "; highlightColor = "#fbbf24"; fontWeight = "bold"; fontSize = "1.2em"; }
-                else if (position === 2) { medal = "🥈 "; highlightColor = "#e2e8f0"; fontWeight = "bold"; fontSize = "1.1em"; }
-                else if (position === 3) { medal = "🥉 "; highlightColor = "#b45309"; fontWeight = "bold"; fontSize = "1.05em"; }
-
-                rankingsHTML += `
-                <div class="score-row" style="padding: 10px 0; font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${highlightColor};">
-                    <span>${medal}${getOrdinal(position)} - ${p.username}</span>
-                    <span>${p.score} pts</span>
-                </div>`;
+                let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '👤';
+                resultHTML += `<div class="score-row"><span>${medal} ${p.username}</span> <span>${p.score} pts</span></div>`;
             });
-
-            // Update the scoreboard with the final rankings
-            document.getElementById('live-scores').innerHTML = rankingsHTML;
-            
-            // Replace the question buttons with Play Again buttons
-            document.getElementById('options-container').innerHTML = `
-                <button onclick="location.reload()" style="margin-top: 15px;">Play Again</button>
-                <button class="btn-secondary" onclick="window.location.href='/'">Back to Planner</button>
-            `;
+            resultHTML += '</div>';
+            document.getElementById('options-container').innerHTML = resultHTML;
+            document.getElementById('ready-btn').classList.remove('hidden');
+            document.getElementById('ready-btn').innerText = "Play Again";
+            document.getElementById('ready-btn').disabled = false;
         });
 
         socket.on('error', (data) => alert(data.message));
