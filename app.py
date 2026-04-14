@@ -39,12 +39,16 @@ def home():
         hours = request.form.get('hours')
 
         # Clean prompt for Markdown tables
+        # Clean prompt for Markdown tables
         prompt = (
-            f"Generate a professional study plan for {days} days. "
+            f"Generate a professional, highly structured study plan for {days} days. "
             f"Subjects: {subjects}. Difficulty: {difficulty}. Time: {hours}hrs/day. "
-            f"Instructions: Use a clean Markdown table for the daily schedule. "
-            f"Use headers for sections. Do not include introductory or concluding conversational text. "
-            f"Focus only on the schedule and actionable goals."
+            f"Instructions: Separate each day clearly. "
+            f"Start each day with an H3 heading (e.g., ### Day 1: [Focus Topic]). "
+            f"Below the heading, provide a clean Markdown table just for that specific day's schedule "
+            f"with columns for 'Time', 'Task', and 'Actionable Goal'. "
+            f"Add a horizontal separation at the very end of each day to visually separate them. Make the formatting good "
+            f"Do not include introductory or concluding conversational text."
         )
         
         success = False
