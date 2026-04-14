@@ -43,13 +43,13 @@ def home():
             f"Generate a structured, visually engaging study plan for {days} days. "
             f"Subjects: {subjects}. Difficulty: {difficulty}. Time: {hours}hrs/day. "
             f"FORMATTING INSTRUCTIONS: "
-            f"1. Main Title: Start with this exact HTML: <h2 style='color: #38bdf8; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 20px;'>{days}-Day {difficulty.title()} Plan: {subjects} ({hours} hrs/day)</h2> "
+            f"1. Main Title: Start with this exact HTML: <h2 style='color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 20px;'>{days}-Day {difficulty.title()} Plan: {subjects} ({hours} hrs/day)</h2> "
             f"2. Subject Intro: Provide a brief 3 or 4-sentence overview of the subjects. You MUST wrap the main concepts in <span style='color: #38bdf8; font-weight: bold;'> </span> to highlight them in blue. "
             f"3. Daily Structure: Separate each day clearly. Start each day with an HTML heading: <h3 style='color: #0ea5e9; margin-top: 30px; letter-spacing: 1px;'>Day X: [Focus Topic]</h3> "
             f"4. Table: Below the day heading, output a clean Markdown table with columns: 'Time', 'Task', and 'Actionable Goal'. "
             f"5. Table Highlighting: INSIDE the tables, use **bold text** to highlight the most important keywords, tools, or concepts in the 'Task' and 'Actionable Goal' columns. "
             f"6. Separation: End each day with a Markdown horizontal rule (---). "
-            f"7. Conclusion: Conclude the entire plan with motication and advice . Use an HTML heading <h3 style='color: #38bdf8; margin-top: 40px;'></h3> followed by a Markdown blockquote (start lines with >) for the motivational text. "
+            f"7. Conclusion: Conclude the entire plan with motication and advice in points "
             f"Do not include any robotic conversational filler like 'Here is your plan'."
         )
         
